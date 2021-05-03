@@ -32,7 +32,7 @@ class ProductFlags extends Module
 
         // List of hooks
         $this->hooksList = [
-            'productActions'
+            'displayProductFlags'
         ];
 
         parent::__construct();
@@ -43,7 +43,7 @@ class ProductFlags extends Module
 
 
 
-    public function hookProductActions()
+    public function hookdisplayProductFlags()
     {
         return "";
     }
