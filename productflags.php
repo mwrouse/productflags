@@ -27,12 +27,15 @@ class ProductFlags extends Module
         $this->need_instance = 0;
         $this->table_name = 'productflags';
         $this->table_name_lang = 'productflags_lang';
-        $this->table_name_hook = 'productflags_hook';
+        $this->table_name_products = 'productflags_products';
         $this->bootstrap = true;
 
         // List of hooks
         $this->hooksList = [
-            'displayProductFlags'
+            'displayBackOfficeHeader',
+            'displayProductFlags',
+            'displayAdminProductsExtra',
+            'actionProductUpdate'
         ];
 
         parent::__construct();
@@ -42,10 +45,49 @@ class ProductFlags extends Module
     }
 
 
-
-    public function hookdisplayProductFlags()
+    /**
+     * Hook for displaying on the store front
+     */
+    public function hookDisplayProductFlags()
     {
         return "";
+    }
+
+
+    /**
+     * Admin Product Page Tab
+     */
+    public function hookDisplayAdminProductsExtra($params)
+    {
+        $this->context->smarty->assign([
+            'flag_list' => [['selected' => false, 'id_flag' => 'bob', 'name' => 'Test']]
+        ]);
+        return $this->display(__FILE__, 'views/admin/DisplayAdminProductsExtra.tpl');
+    }
+
+
+    /**
+     * Admin Product Page Tab Post Process
+     */
+    public function hookActionProductUpdate()
+    {
+        if(Tools::isSubmit('submitAddproduct') || Tools::isSubmit('submitAddproductAndStay')){
+            $product = Tools::getValue('id_product');
+            $flags = Tools::getValue('selectedFlags');
+
+            if (isset($product) && isset($flags) && is_array($flags)) {
+
+            }
+        }
+
+    }
+
+    /**
+     * Back Office Header
+     */
+    public function hookDisplayBackOfficeHeader()
+    {
+        $this->context->controller->addJS($this->_path . 'js/productflags.js', 'all');
     }
 
 
@@ -53,7 +95,7 @@ class ProductFlags extends Module
     {
         if ( ! parent::install()
             || ! $this->_createTabs()
-            || ! $this->_installTable()
+            || ! $this->_createDatabases()
         ) {
             return false;
         }
@@ -70,7 +112,7 @@ class ProductFlags extends Module
     public function uninstall()
     {
         if ( ! parent::uninstall()
-            || ! $this->_eraseTable()
+            || ! $this->_eraseDatabases()
             || ! $this->_eraseTabs()
         ) {
             return false;
@@ -143,7 +185,7 @@ class ProductFlags extends Module
     /**
      * Create Database Tables
      */
-    private function _installTable()
+    private function _createDatabases()
     {
         $sql = 'CREATE TABLE  `'._DB_PREFIX_.$this->table_name.'` (
                 `id_flag` INT( 12 ) AUTO_INCREMENT,
@@ -159,11 +201,10 @@ class ProductFlags extends Module
                 `fgColor` TEXT NOT NULL,
                 PRIMARY KEY (  `id_flag`, `id_lang` )
                 ) ENGINE =' ._MYSQL_ENGINE_;
-        $sql3 = 'CREATE TABLE  `'._DB_PREFIX_.$this->table_name_hook.'` (
+        $sql3 = 'CREATE TABLE  `'._DB_PREFIX_.$this->table_name_products.'` (
                 `id_flag` INT( 12 ),
-                `hook_name` VARCHAR( 64 ) NOT NULL,
-                `position` INT( 12 ) NOT NULL,
-                PRIMARY KEY (  `id_flag`,  `hook_name`)
+                `id_product` INT( 12 ) NOT NULL,
+                PRIMARY KEY (  `id_flag`,  `id_product`)
                 ) ENGINE =' ._MYSQL_ENGINE_.' DEFAULT CHARSET=utf8';
 
         if ( ! Db::getInstance()->Execute($sql)
@@ -179,14 +220,14 @@ class ProductFlags extends Module
     /**
      * Remove Database Tables
      */
-    private function _eraseTable()
+    private function _eraseDatabases()
     {
         if ( ! Db::getInstance()->Execute(
                 'DROP TABLE `'._DB_PREFIX_.$this->table_name.'`'
             ) || ! Db::getInstance()->Execute(
                 'DROP TABLE `'._DB_PREFIX_.$this->table_name_lang.'`'
             ) || ! Db::getInstance()->Execute(
-                'DROP TABLE `'._DB_PREFIX_.$this->table_name_hook.'`'
+                'DROP TABLE `'._DB_PREFIX_.$this->table_name_products.'`'
         )) {
             return false;
         }
