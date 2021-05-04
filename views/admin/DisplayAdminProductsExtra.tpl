@@ -11,7 +11,7 @@
 					<select id="availableProductFlags" name="availableProductFlags" multiple="multiple">
 						{foreach $flag_list as $flag}
 							{if !isset($flag.selected) || !$flag.selected}
-								<option value="{$flag.id_flag}">{$flag.name}</option>
+								<option value="{$flag.id}">{$flag.name}</option>
 							{/if}
 						{/foreach}
 					</select>
@@ -22,7 +22,7 @@
 					<select id="selectedProductFlags" name="selectedProductFlags[]" multiple="multiple">
 						{foreach $flag_list as $flag}
 							{if isset($flag.selected) && $flag.selected}
-								<option value="{$flag.id_flag}" selected>{$flag.name}</option>
+								<option value="{$flag.id}" selected>{$flag.name}</option>
 							{/if}
 						{/foreach}
 					</select>

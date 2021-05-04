@@ -48,9 +48,19 @@ class ProductFlags extends Module
     /**
      * Hook for displaying on the store front
      */
-    public function hookDisplayProductFlags()
+    public function hookDisplayProductFlags($params)
     {
-        return "";
+        $product = $params['product'];
+        if (!isset($product) || !isset($product->id))
+            return;
+
+        $flags = $this->getProductFlagsForProduct($product->id);
+
+        $this->context->smarty->assign([
+            'product_flags' => $flags
+        ]);
+
+        return $this->display(__FILE__, 'views/front/productflags.tpl');
     }
 
 
@@ -59,8 +69,25 @@ class ProductFlags extends Module
      */
     public function hookDisplayAdminProductsExtra($params)
     {
+        $productId = Tools::getValue('id_product');
+        if (!isset($productId))
+            return "Could not load Product ID from Tools::getValue('id_product')";
+
+        $allFlags = $this->getAllProductFlags();
+        $flagsForProduct = $this->getProductFlagsForProduct($productId);
+
+        foreach ($flagsForProduct as $myFlag) {
+            foreach ($allFlags as $i => $globalFlag) {
+                if ($globalFlag['id'] == $myFlag['id']) {
+                    $allFlags[$i]['selected'] = true;
+                    break;
+                }
+            }
+        }
+
         $this->context->smarty->assign([
-            'flag_list' => [['selected' => false, 'id_flag' => 'bob', 'name' => 'Test']]
+            'flag_list' => $allFlags,
+            'selected_flags' => $flagsForProduct
         ]);
         return $this->display(__FILE__, 'views/admin/DisplayAdminProductsExtra.tpl');
     }
@@ -73,10 +100,27 @@ class ProductFlags extends Module
     {
         if(Tools::isSubmit('submitAddproduct') || Tools::isSubmit('submitAddproductAndStay')){
             $product = Tools::getValue('id_product');
-            $flags = Tools::getValue('selectedFlags');
+            $flags = Tools::getValue('selectedProductFlags');
 
-            if (isset($product) && isset($flags) && is_array($flags)) {
+            $table = _DB_PREFIX_.$this->table_name_products;
 
+            if (isset($product) && isset($flags)) {
+                // Delete all known flags for the product
+
+                if (!Db::getInstance()->delete($this->table_name_products, 'id_product = '.$product)) {
+                    error_log('Failed to remove all flags on Product.');
+                }
+
+                // Add new flags for the product
+                foreach ($flags as $flag) {
+
+                    if (!Db::getInstance()->insert($this->table_name_products, [
+                        'id_flag' => $flag,
+                        'id_product' => $product
+                    ])) {
+                        error_log("Failed to execute " . $sql);
+                    }
+                }
             }
         }
 
@@ -88,6 +132,144 @@ class ProductFlags extends Module
     public function hookDisplayBackOfficeHeader()
     {
         $this->context->controller->addJS($this->_path . 'js/productflags.js', 'all');
+    }
+
+
+
+    /**
+     * Find all of the product flags for a product
+     */
+    private function getProductFlagsForProduct($productId)
+    {
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
+            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t3`.`id_product`, `t1`.`active`
+            FROM `'._DB_PREFIX_.$this->table_name.'` t1
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_products.'` t3 ON (t3.id_flag = t1.id_flag)
+            WHERE (t1.active = 1) AND (t3.id_product = '.$productId.')
+        ');
+
+        if (!$result)
+            return [];
+
+        $finalResult = [];
+
+        foreach ($result as $flag) {
+            $transformed = $this->transformResult($flag);
+            $transformed['selected'] = true;
+            array_push($finalResult, $transformed);
+        }
+
+        return $finalResult;
+    }
+
+
+    /**
+     * Gets only the active product flags
+     */
+    public function getAllActiveProductFlags()
+    {
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
+            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t1`.`active`
+            FROM `'._DB_PREFIX_.$this->table_name.'` t1
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
+            WHERE `t1`.`active`=1
+        ');
+
+        if (!$result)
+            return [];
+
+        $finalResult = [];
+
+        foreach ($result as $flag) {
+            $finalFlag = $this->transformResult($flag);
+
+            array_push($finalResult, $finalFlag);
+        }
+
+        return $finalResult;
+    }
+
+
+    /**
+     * Gets all of the product flags
+     */
+    public function getAllProductFlags()
+    {
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
+            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t1`.`active`
+            FROM `'._DB_PREFIX_.$this->table_name.'` t1
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
+        ');
+
+        if (!$result)
+            return [];
+
+        $finalResult = [];
+
+        foreach ($result as $flag) {
+            $finalFlag = $this->transformResult($flag);
+
+            array_push($finalResult, $finalFlag);
+        }
+
+        return $finalResult;
+    }
+
+    /**
+     * Returns a single product flag
+     */
+    public function getProductFlag($flagId)
+    {
+        if ($flagId == 'new') {
+            return $this->transformResult(['id_flag' => 'new', 'name' => '', 'html' => '', 'active' => 1, 'id_lang' => $this->context->language->id]);
+        }
+
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
+            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t1`.`active`
+            FROM `'._DB_PREFIX_.$this->table_name.'` t1
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
+            WHERE (`t1`.`id_flag` = '.$flagId.')
+        ');
+
+        if (!$result)
+            return false;
+
+        $flag = $result[0];
+
+        return $this->transformResult($flag);
+    }
+
+
+    /**
+     * Returns the status of a product flag
+     */
+    public function getProductFlagStatus($flagId)
+    {
+        $flag = $this->getProductFlag($flagId);
+        if (!$flag)
+            return 1;
+
+        return $flag['active'];
+    }
+
+    /**
+     * Transform result into object
+     */
+    private function transformResult($result)
+    {
+        $tmp = [
+            'id' => $result['id_flag'],
+            'id_flag' => $result['id_flag'],
+            'name' => $result['name'],
+            'content' => $result['html'],
+            'active' => $result['active'],
+        ];
+
+        $tmp['content_lang'] = [];
+        $tmp['content_lang'][$result['id_lang']] = $result['html'];
+
+        return $tmp;
     }
 
 
@@ -196,9 +378,7 @@ class ProductFlags extends Module
         $sql2 = 'CREATE TABLE  `'._DB_PREFIX_.$this->table_name_lang.'` (
                 `id_flag` INT( 12 ),
                 `id_lang` INT( 12 ) NOT NULL,
-                `content` TEXT NOT NULL,
-                `bgcolor` TEXT NOT NULL,
-                `fgColor` TEXT NOT NULL,
+                `html` TEXT NOT NULL,
                 PRIMARY KEY (  `id_flag`, `id_lang` )
                 ) ENGINE =' ._MYSQL_ENGINE_;
         $sql3 = 'CREATE TABLE  `'._DB_PREFIX_.$this->table_name_products.'` (

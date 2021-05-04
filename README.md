@@ -11,4 +11,4 @@ Anything you need to call attention to on the product page near the product pric
 
 
 ## Hook
-This uses a custom hook called `displayProductFlags`. You can add it to your theme with `{hook h='displayProductFlags'}`.
+This uses a custom hook called `displayProductFlags`. You can add it to your theme with `{hook h='displayProductFlags' product=$product}`.
