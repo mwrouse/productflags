@@ -30,6 +30,8 @@ class ProductFlags extends Module
         $this->table_name_products = 'productflags_products';
         $this->bootstrap = true;
 
+        $this->ps_versions_compliancy = ['min' => '1.6', 'max' => '1.6.99.99'];
+
         // List of hooks
         $this->hooksList = [
             'displayBackOfficeHeader',
