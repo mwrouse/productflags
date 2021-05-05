@@ -113,14 +113,17 @@ class ProductFlags extends Module
                     error_log('Failed to remove all flags on Product.');
                 }
 
-                // Add new flags for the product
-                foreach ($flags as $flag) {
+                if (is_array($flags) && count($flags) > 0)
+                {
+                    // Add new flags for the product
+                    foreach ($flags as $flag) {
 
-                    if (!Db::getInstance()->insert($this->table_name_products, [
-                        'id_flag' => $flag,
-                        'id_product' => $product
-                    ])) {
-                        error_log("Failed to execute " . $sql);
+                        if (!Db::getInstance()->insert($this->table_name_products, [
+                            'id_flag' => $flag,
+                            'id_product' => $product
+                        ])) {
+                            error_log("Failed to execute " . $sql);
+                        }
                     }
                 }
             }
