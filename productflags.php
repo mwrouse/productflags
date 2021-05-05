@@ -19,6 +19,7 @@ class ProductFlags extends Module
     public function __construct()
     {
         $this->name = 'productflags';
+        $this->className = 'ProductFlags';
         $this->tab = 'front_office_features';
         $this->version = '1.0.1';
         $this->author = 'Michael Rouse';
@@ -315,7 +316,7 @@ class ProductFlags extends Module
     {
         /* This is the main tab, all others will be children of this */
         $allLangs = Language::getLanguages();
-        $idTab = $this->_createSingleTab(9 /* Catalog Tab */, 'Admin'.ucfirst($this->name), $this->displayName, $allLangs);
+        $idTab = $this->_createSingleTab(9 /* Catalog Tab */, 'Admin'.$this->className, $this->displayName, $allLangs);
 
         foreach ($this->_tabs as $class => $name) {
               $this->_createSingleTab($idTab, $class, $name, $allLangs);
