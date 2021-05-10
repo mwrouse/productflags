@@ -209,7 +209,7 @@ class AdminProductFlagsController extends ModuleAdminController
                             [
                                 'id_flag' => (int)$flagId,
                                 'id_lang' => $lang['id_lang'],
-                                'content' => $content
+                                'html' => $content
                             ]
                         );
                     }
