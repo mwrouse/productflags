@@ -191,7 +191,7 @@ class AdminProductFlagsController extends ModuleAdminController
             $active = Tools::getValue('active');
 
             $result = Db::getInstance()->update($this->module->table_name,
-                ['name' => $name,'active' => $active],
+                ['name' => pSQL($name),'active' => $active],
                 'id_flag ='. (int)$flagId
             );
 
@@ -209,13 +209,13 @@ class AdminProductFlagsController extends ModuleAdminController
                             [
                                 'id_flag' => (int)$flagId,
                                 'id_lang' => $lang['id_lang'],
-                                'html' => $content
+                                'html' => pSQL($content)
                             ]
                         );
                     }
                     else {
                         $result = Db::getInstance()->update($this->module->table_name_lang,
-                            ['html' => $content],
+                            ['html' => pSQL($content)],
                             'id_flag ='. (int)$flagId . ' AND id_lang =' . $lang['id_lang']
                         );
 
@@ -258,7 +258,7 @@ class AdminProductFlagsController extends ModuleAdminController
 
             $result = Db::getInstance()->insert(
                 $this->module->table_name,
-                ['name' => $name, 'active' => $active]
+                ['name' => pSQL($name), 'active' => $active]
             );
 
             if (!result) {
@@ -272,7 +272,7 @@ class AdminProductFlagsController extends ModuleAdminController
 
                     $result = Db::getInstance()->insert(
                         $this->module->table_name_lang,
-                        ['id_flag' => $flagId, 'id_lang' => $lang['id_lang'], 'html' => $content]
+                        ['id_flag' => $flagId, 'id_lang' => $lang['id_lang'], 'html' => pSQL($content)]
                     );
 
                     if (!$result) {
