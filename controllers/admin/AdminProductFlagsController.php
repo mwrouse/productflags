@@ -209,13 +209,13 @@ class AdminProductFlagsController extends ModuleAdminController
                             [
                                 'id_flag' => (int)$flagId,
                                 'id_lang' => $lang['id_lang'],
-                                'html' => pSQL($content)
+                                'html' => pSQL($content, true)
                             ]
                         );
                     }
                     else {
                         $result = Db::getInstance()->update($this->module->table_name_lang,
-                            ['html' => pSQL($content)],
+                            ['html' => pSQL($content, true)],
                             'id_flag ='. (int)$flagId . ' AND id_lang =' . $lang['id_lang']
                         );
 
@@ -272,7 +272,7 @@ class AdminProductFlagsController extends ModuleAdminController
 
                     $result = Db::getInstance()->insert(
                         $this->module->table_name_lang,
-                        ['id_flag' => $flagId, 'id_lang' => $lang['id_lang'], 'html' => pSQL($content)]
+                        ['id_flag' => $flagId, 'id_lang' => $lang['id_lang'], 'html' => pSQL($content, true)]
                     );
 
                     if (!$result) {
