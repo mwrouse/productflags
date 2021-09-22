@@ -57,7 +57,15 @@ class ProductFlags extends Module
         if (!isset($product) || !isset($product->id))
             return;
 
-        $flags = $this->getProductFlagsForProduct($product->id);
+        if (!array_key_exists('bottom', $params))
+            $bottom = false;
+        else
+            $bottom = $params['bottom'];
+
+        if (!is_bool($bottom))
+            $bottom = false;
+
+        $flags = $this->getProductFlagsForProduct($product->id, $bottom);
 
         $this->context->smarty->assign([
             'product_flags' => $flags
@@ -145,14 +153,16 @@ class ProductFlags extends Module
     /**
      * Find all of the product flags for a product
      */
-    private function getProductFlagsForProduct($productId)
+    private function getProductFlagsForProduct($productId, $bottom = false)
     {
+        $bottom = $bottom ? 1 : 0;
+
         $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
             SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t3`.`id_product`, `t1`.`active`
             FROM `'._DB_PREFIX_.$this->table_name.'` t1
             LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
             LEFT JOIN `'._DB_PREFIX_.$this->table_name_products.'` t3 ON (t3.id_flag = t1.id_flag)
-            WHERE (t1.active = 1) AND (t3.id_product = '.$productId.')
+            WHERE (t1.active = 1) AND (t3.id_product = '.$productId.') AND (t1.bottom_of_desc='.$bottom.')
         ');
 
         if (!$result)
@@ -228,11 +238,11 @@ class ProductFlags extends Module
     public function getProductFlag($flagId)
     {
         if ($flagId == 'new') {
-            return $this->transformResult(['id_flag' => 'new', 'name' => '', 'html' => '', 'active' => 1, 'id_lang' => $this->context->language->id]);
+            return $this->transformResult(['id_flag' => 'new', 'name' => '', 'html' => '', 'active' => 1, 'bottom_of_desc' => 0, 'id_lang' => $this->context->language->id]);
         }
 
         $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
-            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t1`.`active`
+            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t1`.`active`, `t1`.`bottom_of_desc`
             FROM `'._DB_PREFIX_.$this->table_name.'` t1
             LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
             WHERE (`t1`.`id_flag` = '.$flagId.')
@@ -270,6 +280,7 @@ class ProductFlags extends Module
             'name' => $result['name'],
             'content' => $result['html'],
             'active' => $result['active'],
+            'bottom_of_desc' => $result['bottom_of_desc'],
         ];
 
         $tmp['content_lang'] = [];
@@ -379,6 +390,7 @@ class ProductFlags extends Module
                 `id_flag` INT( 12 ) AUTO_INCREMENT,
                 `name` VARCHAR( 64 ) NOT NULL,
                 `active` TINYINT(1) NOT NULL,
+                `bottom_of_desc` TINYINT(1) NOT NULL DEFAULT 0,
                 PRIMARY KEY (  `id_flag` )
                 ) ENGINE =' ._MYSQL_ENGINE_;
         $sql2 = 'CREATE TABLE  `'._DB_PREFIX_.$this->table_name_lang.'` (

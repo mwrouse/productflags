@@ -111,6 +111,21 @@ class AdminProductFlagsController extends ModuleAdminController
             'lang'  => true,
             'autoload_rte' => true,
         ];
+        $inputs[] = [
+            'type'   => 'switch',
+            'label'  => $this->l("Bottom of Description"),
+            'name'   => 'bottom_of_desc',
+            'values' => [
+                [
+                    'id'    => 'bottom_of_desc_on',
+                    'value' => 1,
+                ],
+                [
+                    'id'    => 'bottom_of_desc_off',
+                    'value' => 0,
+                ],
+            ]
+        ];
 
         if ($this->display == 'edit') {
             $inputs[] = [
@@ -189,9 +204,10 @@ class AdminProductFlagsController extends ModuleAdminController
         }
         else {
             $active = Tools::getValue('active');
+            $bottom_of_desc = Tools::getValue('bottom_of_desc');
 
             $result = Db::getInstance()->update($this->module->table_name,
-                ['name' => pSQL($name),'active' => $active],
+                ['name' => pSQL($name),'active' => $active, 'bottom_of_desc' => $bottom_of_desc],
                 'id_flag ='. (int)$flagId
             );
 
@@ -255,10 +271,11 @@ class AdminProductFlagsController extends ModuleAdminController
         }
         else {
             $active = Tools::getValue('active');
+            $bottom_of_desc = Tools::getValue('bottom_of_desc');
 
             $result = Db::getInstance()->insert(
                 $this->module->table_name,
-                ['name' => pSQL($name), 'active' => $active]
+                ['name' => pSQL($name), 'active' => $active, 'bottom_of_desc' => $bottom_of_desc]
             );
 
             if (!result) {
