@@ -85,7 +85,7 @@ class ProductFlags extends Module
             return "Could not load Product ID from Tools::getValue('id_product')";
 
         $allFlags = $this->getAllProductFlags();
-        $flagsForProduct = $this->getProductFlagsForProduct($productId);
+        $flagsForProduct = $this->getALLProductFlagsForProduct($productId);
 
         foreach ($flagsForProduct as $myFlag) {
             foreach ($allFlags as $i => $globalFlag) {
@@ -115,10 +115,10 @@ class ProductFlags extends Module
 
             $table = _DB_PREFIX_.$this->table_name_products;
 
-            if (isset($product) && isset($flags)) {
-                // Delete all known flags for the product
-
-                if (!Db::getInstance()->delete($this->table_name_products, 'id_product = '.$product)) {
+            if (isset($product) && isset($flags))
+            {
+                 // Delete all known flags for the product
+                 if (!Db::getInstance()->delete($this->table_name_products, 'id_product = '.$product)) {
                     error_log('Failed to remove all flags on Product.');
                 }
 
@@ -151,7 +151,7 @@ class ProductFlags extends Module
 
 
     /**
-     * Find all of the product flags for a product
+     * Find all of the product flags for a product for top or bottom
      */
     private function getProductFlagsForProduct($productId, $bottom = false)
     {
@@ -163,6 +163,36 @@ class ProductFlags extends Module
             LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
             LEFT JOIN `'._DB_PREFIX_.$this->table_name_products.'` t3 ON (t3.id_flag = t1.id_flag)
             WHERE (t1.active = 1) AND (t3.id_product = '.$productId.') AND (t1.bottom_of_desc='.$bottom.')
+        ');
+
+        if (!$result)
+            return [];
+
+        $finalResult = [];
+
+        foreach ($result as $flag) {
+            $transformed = $this->transformResult($flag);
+            $transformed['selected'] = true;
+            array_push($finalResult, $transformed);
+        }
+
+        return $finalResult;
+    }
+
+
+    /**
+     * Find ALL of the product flags for a product
+     */
+    private function getALLProductFlagsForProduct($productId)
+    {
+        $bottom = $bottom ? 1 : 0;
+
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->ExecuteS('
+            SELECT `t1`.`id_flag`, `t1`.`name`, `t2`.`id_lang`, `t2`.`html`, `t3`.`id_product`, `t1`.`active`
+            FROM `'._DB_PREFIX_.$this->table_name.'` t1
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_lang.'` t2 ON (t1.id_flag = t2.id_flag) AND (t2.id_lang = '.$this->context->language->id.')
+            LEFT JOIN `'._DB_PREFIX_.$this->table_name_products.'` t3 ON (t3.id_flag = t1.id_flag)
+            WHERE (t1.active = 1) AND (t3.id_product = '.$productId.')
         ');
 
         if (!$result)
@@ -274,6 +304,9 @@ class ProductFlags extends Module
      */
     private function transformResult($result)
     {
+        if (!array_key_exists('bottom_of_desc', $result))
+            $result['bottom_of_desc'] = false;
+
         $tmp = [
             'id' => $result['id_flag'],
             'id_flag' => $result['id_flag'],
